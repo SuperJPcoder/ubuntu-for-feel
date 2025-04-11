@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ubuntu Terminal</title>
+  <style>
+    * {margin: 0; padding: 0; box-sizing: border-box;}
+    body {background-color: #2c001e; font-family: 'Ubuntu Mono', monospace; display: flex; align-items: center; justify-content: center; height: 100vh;}
+    .terminal-window {background-color: #300a24; width: 900px; height: 540px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.8); display: flex; flex-direction: column; overflow: hidden;}
+    .terminal-header {background-color: #2c001e; padding: 8px 12px; display: flex; align-items: center; gap: 8px;}
+    .button {width: 12px; height: 12px; border-radius: 50%; display: inline-block;}
+    .red {background-color: #ff5f56;}
+    .yellow {background-color: #ffbd2e;}
+    .green {background-color: #27c93f;}
+    .terminal-body {padding: 8px 12px; color: #eeeeee; font-size: 16px; line-height: 1.5; overflow-y: auto; flex: 1;}
+    .line {display: flex; width: 100%; color: #eeeeee;}
+    .prompt {color: #00ff00; white-space: nowrap;}
+    .user {color: inherit;}
+    .hostname {color: inherit;}
+    .path {color: #4ae2ff;}
+    .dollar {color: #ffffff;}
+  </style>
+</head>
+<body>
+  <div class="terminal-window">
+    <div class="terminal-header">
+      <div class="button red"></div>
+      <div class="button yellow"></div>
+      <div class="button green"></div>
+    </div>
+    <div class="terminal-body" id="terminal">
+      <div class="line" contenteditable="true">
+        <span class="prompt"><span class="user">priyank-jhaveri</span>@<span class="hostname">ubuntu</span>:<span class="path">~</span><span class="dollar">$</span> </span>
+      </div>
+    </div>
+  </div>
+  <script>
+    var terminal = document.getElementById("terminal");
+    var currentPath = "~";
+
+    function createPromptLine(path) {
+      var newLine = document.createElement("div");
+      newLine.className = "line";
+      newLine.contentEditable = "true";
+      newLine.innerHTML = '<span class="prompt"><span class="user">priyank-jhaveri</span>@<span class="hostname">ubuntu</span>:<span class="path">' + path + '</span><span class="dollar">$</span> </span>';
+      terminal.appendChild(newLine);
+      newLine.focus();
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    terminal.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        var selection = window.getSelection();
+        var range = selection.getRangeAt(0);
+        var currentLine = range.startContainer.nodeType === 3 ? range.startContainer.parentElement : range.startContainer;
+        while (currentLine && !currentLine.classList.contains("line")) {
+          currentLine = currentLine.parentElement;
+        }
+        if (!currentLine) return;
+
+        var text = currentLine.innerText.trim();
+        var command = text.split("$").slice(1).join("$").trim();
+
+        if (command.startsWith("cd ")) {
+          var arg = command.slice(3).trim();
+          if (arg === "..") {
+            if (currentPath !== "~") {
+              var parts = currentPath.split("/");
+              parts.pop();
+              currentPath = parts.length === 1 ? "~" : parts.join("/");
+            }
+          } else {
+            currentPath = currentPath === "~" ? "~/" + arg : currentPath + "/" + arg;
+          }
+        }
+
+        currentLine.contentEditable = "false";
+        createPromptLine(currentPath);
+      }
+    });
+
+    terminal.addEventListener("paste", function(e) {
+      var clipboard = (e.clipboardData || window.clipboardData).getData("text");
+      var lines = clipboard.split(/\r?\n/);
+      if (lines.length <= 1) return;
+
+      e.preventDefault();
+      var selection = window.getSelection();
+      var range = selection.getRangeAt(0);
+      var currentLine = range.startContainer;
+      while (currentLine && !currentLine.classList.contains("line")) {
+        currentLine = currentLine.parentElement;
+      }
+      if (!currentLine) return;
+
+      var idx = Array.from(terminal.children).indexOf(currentLine);
+      terminal.removeChild(currentLine);
+
+      lines.forEach(function(line, i) {
+        var div = document.createElement("div");
+        div.className = "line";
+        div.contentEditable = "false";
+        div.textContent = line;
+        terminal.insertBefore(div, terminal.children[idx++]);
+      });
+
+      createPromptLine(currentPath);
+    });
+  </script>
+</body>
+</html>
