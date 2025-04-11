@@ -13,13 +13,12 @@
     .yellow {background-color: #ffbd2e;}
     .green {background-color: #27c93f;}
     .terminal-body {padding: 8px 12px; color: #eeeeee; font-size: 16px; line-height: 1.5; overflow-y: auto; flex: 1;}
-    .line {display: flex; width: 100%;}
+    .line {display: flex; width: 100%; color: #eeeeee;}
     .prompt {color: #00ff00; white-space: nowrap;}
     .user {color: inherit;}
     .hostname {color: inherit;}
     .path {color: #4ae2ff;}
     .dollar {color: #ffffff;}
-    .input {outline: none; border: none; background: transparent; color: #eeeeee; font-family: 'Ubuntu Mono', monospace; font-size: 16px; flex: 1;}
   </style>
 </head>
 <body>
@@ -30,9 +29,8 @@
       <div class="button green"></div>
     </div>
     <div class="terminal-body" id="terminal">
-      <div class="line">
-        <span class="prompt"><span class="user">priyank-jhaveri</span>@<span class="hostname">ubuntu</span>:<span class="path">~</span><span class="dollar">$</span></span>
-        <span class="input" contenteditable="true"></span>
+      <div class="line" contenteditable="true">
+        <span class="prompt"><span class="user">priyank-jhaveri</span>@<span class="hostname">ubuntu</span>:<span class="path">~</span><span class="dollar">$</span> </span>
       </div>
     </div>
   </div>
@@ -40,53 +38,74 @@
     var terminal = document.getElementById("terminal");
     var currentPath = "~";
 
+    function createPromptLine(path) {
+      var newLine = document.createElement("div");
+      newLine.className = "line";
+      newLine.contentEditable = "true";
+      newLine.innerHTML = '<span class="prompt"><span class="user">priyank-jhaveri</span>@<span class="hostname">ubuntu</span>:<span class="path">' + path + '</span><span class="dollar">$</span> </span>';
+      terminal.appendChild(newLine);
+      newLine.focus();
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
     terminal.addEventListener("keydown", function(e) {
       if (e.key === "Enter") {
         e.preventDefault();
         var selection = window.getSelection();
         var range = selection.getRangeAt(0);
-        var currentInputSpan = range.startContainer.nodeType === 3 ? range.startContainer.parentElement : range.startContainer;
-        if (!currentInputSpan.classList.contains("input")) return;
+        var currentLine = range.startContainer.nodeType === 3 ? range.startContainer.parentElement : range.startContainer;
+        while (currentLine && !currentLine.classList.contains("line")) {
+          currentLine = currentLine.parentElement;
+        }
+        if (!currentLine) return;
 
-        var command = currentInputSpan.innerText.trim();
-        var newPath = currentPath;
+        var text = currentLine.innerText.trim();
+        var command = text.split("$").slice(1).join("$").trim();
 
         if (command.startsWith("cd ")) {
-          var newDir = command.slice(3).trim();
-          if (newDir === "..") {
-            if (newPath !== "~") {
-              var parts = newPath.split("/");
+          var arg = command.slice(3).trim();
+          if (arg === "..") {
+            if (currentPath !== "~") {
+              var parts = currentPath.split("/");
               parts.pop();
-              newPath = parts.length === 1 ? "~" : parts.join("/");
+              currentPath = parts.length === 1 ? "~" : parts.join("/");
             }
           } else {
-            newPath = newPath === "~" ? "~/" + newDir : newPath + "/" + newDir;
+            currentPath = currentPath === "~" ? "~/" + arg : currentPath + "/" + arg;
           }
-          currentPath = newPath;
         }
 
-        currentInputSpan.contentEditable = "false";
-
-        var newLine = document.createElement("div");
-        newLine.className = "line";
-
-        var prompt = document.createElement("span");
-        prompt.className = "prompt";
-        prompt.innerHTML =
-          '<span class="user">priyank-jhaveri</span>@<span class="hostname">ubuntu</span>:<span class="path">' +
-          currentPath +
-          '</span><span class="dollar">$</span>';
-
-        var input = document.createElement("span");
-        input.className = "input";
-        input.contentEditable = "true";
-
-        newLine.appendChild(prompt);
-        newLine.appendChild(input);
-        terminal.appendChild(newLine);
-        input.focus();
-        terminal.scrollTop = terminal.scrollHeight;
+        currentLine.contentEditable = "false";
+        createPromptLine(currentPath);
       }
+    });
+
+    terminal.addEventListener("paste", function(e) {
+      var clipboard = (e.clipboardData || window.clipboardData).getData("text");
+      var lines = clipboard.split(/\r?\n/);
+      if (lines.length <= 1) return;
+
+      e.preventDefault();
+      var selection = window.getSelection();
+      var range = selection.getRangeAt(0);
+      var currentLine = range.startContainer;
+      while (currentLine && !currentLine.classList.contains("line")) {
+        currentLine = currentLine.parentElement;
+      }
+      if (!currentLine) return;
+
+      var idx = Array.from(terminal.children).indexOf(currentLine);
+      terminal.removeChild(currentLine);
+
+      lines.forEach(function(line, i) {
+        var div = document.createElement("div");
+        div.className = "line";
+        div.contentEditable = "false";
+        div.textContent = line;
+        terminal.insertBefore(div, terminal.children[idx++]);
+      });
+
+      createPromptLine(currentPath);
     });
   </script>
 </body>
