@@ -14,10 +14,10 @@
     .green {background-color: #27c93f;}
     .terminal-body {padding: 8px 12px; color: #eeeeee; font-size: 16px; line-height: 1.5; overflow-y: auto; flex: 1;}
     .line {display: flex; width: 100%;}
-    .prompt {color: #4ae2ff; white-space: nowrap;}
-    .user {color: #ff6c6b;}
-    .hostname {color: #fecd51;}
-    .path {color: #98be65;}
+    .prompt {color: #00ff00; white-space: nowrap;}
+    .user {color: inherit;}
+    .hostname {color: inherit;}
+    .path {color: #4ae2ff;}
     .dollar {color: #ffffff;}
     .input {outline: none; border: none; background: transparent; color: #eeeeee; font-family: 'Ubuntu Mono', monospace; font-size: 16px; flex: 1;}
   </style>
@@ -38,23 +38,54 @@
   </div>
   <script>
     var terminal = document.getElementById("terminal");
+    var currentPath = "~";
+
     terminal.addEventListener("keydown", function(e) {
       if (e.key === "Enter") {
         e.preventDefault();
         var selection = window.getSelection();
         var range = selection.getRangeAt(0);
-        var currentLine = range.startContainer.parentElement;
-        if (currentLine.classList.contains("input")) {
-          currentLine = currentLine.parentElement;
+        var currentInputSpan = range.startContainer.nodeType === 3 ? range.startContainer.parentElement : range.startContainer;
+        if (!currentInputSpan.classList.contains("input")) return;
+
+        var command = currentInputSpan.innerText.trim();
+        var newPath = currentPath;
+
+        if (command.startsWith("cd ")) {
+          var newDir = command.slice(3).trim();
+          if (newDir === "..") {
+            if (newPath !== "~") {
+              var parts = newPath.split("/");
+              parts.pop();
+              newPath = parts.length === 1 ? "~" : parts.join("/");
+            }
+          } else {
+            newPath = newPath === "~" ? "~/" + newDir : newPath + "/" + newDir;
+          }
+          currentPath = newPath;
         }
+
+        currentInputSpan.contentEditable = "false";
+
         var newLine = document.createElement("div");
         newLine.className = "line";
-        var newInput = document.createElement("span");
-        newInput.className = "input";
-        newInput.contentEditable = "true";
-        newLine.appendChild(newInput);
+
+        var prompt = document.createElement("span");
+        prompt.className = "prompt";
+        prompt.innerHTML =
+          '<span class="user">priyank-jhaveri</span>@<span class="hostname">ubuntu</span>:<span class="path">' +
+          currentPath +
+          '</span><span class="dollar">$</span>';
+
+        var input = document.createElement("span");
+        input.className = "input";
+        input.contentEditable = "true";
+
+        newLine.appendChild(prompt);
+        newLine.appendChild(input);
         terminal.appendChild(newLine);
-        newInput.focus();
+        input.focus();
+        terminal.scrollTop = terminal.scrollHeight;
       }
     });
   </script>
