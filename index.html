@@ -19,30 +19,57 @@
     .hostname {color: inherit;}
     .path {color: #4ae2ff;}
     .dollar {color: #ffffff;}
+
+    .popup-overlay {position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999;}
+    .popup-box {background-color: #1e1e1e; padding: 20px 30px; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.5);}
+    .popup-box input {background-color: #000; border: none; padding: 10px; font-size: 16px; color: #0f0; font-family: 'Ubuntu Mono', monospace; width: 300px;}
+    .popup-box button {margin-top: 10px; padding: 8px 16px; background-color: #0f0; color: #000; border: none; font-weight: bold; cursor: pointer;}
   </style>
 </head>
 <body>
-  <div class="terminal-window">
+  <div class="popup-overlay" id="popup">
+    <div class="popup-box">
+      <div style="color: #eee; margin-bottom: 10px;">Enter your name:</div>
+      <input type="text" id="nameInput" autocomplete="off">
+      <br>
+      <button onclick="submitName()">Start</button>
+    </div>
+  </div>
+
+  <div class="terminal-window" style="display: none;" id="terminalWindow">
     <div class="terminal-header">
       <div class="button red"></div>
       <div class="button yellow"></div>
       <div class="button green"></div>
     </div>
-    <div class="terminal-body" id="terminal">
-      <div class="line" contenteditable="true">
-        <span class="prompt"><span class="user">priyank-jhaveri</span>@<span class="hostname">ubuntu</span>:<span class="path">~</span><span class="dollar">$</span> </span>
-      </div>
-    </div>
+    <div class="terminal-body" id="terminal"></div>
   </div>
+
   <script>
     var terminal = document.getElementById("terminal");
+    var terminalWindow = document.getElementById("terminalWindow");
     var currentPath = "~";
+    var userName = null;
+
+    var input = document.getElementById("nameInput");
+    input.addEventListener("input", function() {
+      input.value = input.value.replace(/ /g, "-");
+    });
+
+    function submitName() {
+      var name = input.value.trim();
+      if (name.length === 0) return;
+      userName = name;
+      document.getElementById("popup").style.display = "none";
+      terminalWindow.style.display = "flex";
+      createPromptLine(currentPath);
+    }
 
     function createPromptLine(path) {
       var newLine = document.createElement("div");
       newLine.className = "line";
       newLine.contentEditable = "true";
-      newLine.innerHTML = '<span class="prompt"><span class="user">priyank-jhaveri</span>@<span class="hostname">ubuntu</span>:<span class="path">' + path + '</span><span class="dollar">$</span> </span>';
+      newLine.innerHTML = '<span class="prompt"><span class="user">' + userName + '</span>@<span class="hostname">ubuntu</span>:<span class="path">' + path + '</span><span class="dollar">$</span> </span>';
       terminal.appendChild(newLine);
       newLine.focus();
       terminal.scrollTop = terminal.scrollHeight;
